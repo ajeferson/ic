@@ -1,108 +1,196 @@
 import random
+import math
 
 class Puzzle:
 
-    def __init__(self, board=list('12345678X'), x=8):
-        self.board = board
-        self.x = x
+    def __init__(self, **kwargs):
+        if 'board' in kwargs:
+            self.board, self.n, self.cx, self.cy = kwargs['board'], kwargs['n'], kwargs['cx'], kwargs['cy']
+        elif 'str' in kwargs:
+            self.board, self.n, self.cx, self.cy = self.str_to_matrix(kwargs['str'], kwargs['blank'])
+        else:
+            pass # Exception
+        self.parent = None
+        self.g = 0
+        self.h = 0
 
-    def board_swap(self, y):
-        self.board[self.x], self.board[y] = self.board[y], self.board[self.x]
-        self.x = y
+    def str_to_matrix(self, s, c):
+        n = int(math.sqrt(len(s)))
+        matrix = [[s[i] for i in range(k, k+n)] for k in range(0, len(s), n)]
+        for i in range(n):
+            for j in range(n):
+                if matrix[i][j] == c: return (matrix, n, i, j)
+        return (matrix, n, -1, -1)
+
+    def blank_swap(self, x, y):
+        aux = self.board[self.cx][self.cy]
+        self.board[self.cx][self.cy] = self.board[x][y]
+        self.board[x][y] = aux
+        self.cx, self.cy = x, y
 
     def clone(self):
-        board = [c for c in self.board]
-        return Puzzle(board=board, x=int(self.x))
+        board = [[c for c in row] for row in self.board]
+        return Puzzle(board=board, n=self.n, cx=self.cx, cy=self.cy)
 
     def move_up(self):
-        self.board_swap(self.x + 3)
+        self.blank_swap(self.cx + 1, self.cy)
         return self
 
     def move_down(self):
-        self.board_swap(self.x - 3)
+        self.blank_swap(self.cx - 1, self.cy)
         return self
 
     def move_right(self):
-        self.board_swap(self.x - 1)
+        self.blank_swap(self.cx, self.cy - 1)
         return self
 
     def move_left(self):
-        self.board_swap(self.x + 1)
+        self.blank_swap(self.cx, self.cy + 1)
         return self
 
-    def get_possibilities(self):
+    def get_children(self):
         possibilities = []
-        if self.x > 0 and self.x % 3 != 0: # Move right
-            possibilities.append(self.clone().move_right())
-        if (self.x+1) % 3 != 0: # Move left
-            possibilities.append(self.clone().move_left())
-        if (self.x+3) <= 8: # Move up
-            possibilities.append(self.clone().move_up())
-        if (self.x-3) >= 0: # Move down
-            possibilities.append(self.clone().move_down())
+        if self.cy > 0: # Move right
+            child = self.clone().move_right()
+            child.parent = self
+            possibilities.append(child)
+        if (self.cy+1) < self.n: # Move left
+            child = self.clone().move_left()
+            child.parent = self
+            possibilities.append(child)
+        if (self.cx+1) < self.n: # Move up
+            child = self.clone().move_up()
+            child.parent = self
+            possibilities.append(child)
+        if self.cx > 0: # Move down
+            child = self.clone().move_down()
+            child.parent = self
+            possibilities.append(child)
         return possibilities
 
     def hash_code(self):
         str = ""
-        for i in self.board:
-            str += i
+        for row in self.board:
+            for c in row:
+                str += c
         return str
 
     def __str__(self):
-        str = ""
-        for i in range(0, len(self.board), 3):
-            str += ("%s %s %s\n" % (self.board[i], self.board[i+1], self.board[i+2]))
+        str = ''
+        for i in range(self.n):
+            str += ("%s %s %s\n" % (self.board[i][0], self.board[i][1], self.board[i][2]))
         return str[0:-1]
 
-    def is_done(self):
-        for i in range(1, 9):
-            if str(i) != self.board[i-1]: return False
+    def __gt__(self, other):
+        return self.f() > other.f()
+
+    def positions_map(self):
+        positions = {}
+        for i in range(self.n):
+            for j in range(self.n):
+                positions[self.board[i][j]] = (i, j)
+        return positions
+
+    """
+    Manhattan Distance
+    """
+    def distance_to(self, positions):
+        dist = 0
+        for i in range(self.n):
+            for j in range(self.n):
+                if i != self.cx or j != self.cy:
+                    x, y = positions[self.board[i][j]]
+                    dist += abs(i - x) + abs(j - y)
+        return dist
+
+    def is_equal(self, other):
+        for i in range(self.n):
+            for j in range(self.n):
+                if self.board[i][j] != other.board[i][j]:
+                    return False
         return True
 
     def mix(self, times):
         while times > 0:
             f = random.randint(0, 3)
-            if f == 0 and self.x > 0 and self.x % 3 != 0: # Move right
+            if f == 0 and self.cy > 0: # Move right
                 self.move_right()
                 times -= 1
-            if f == 1 and (self.x+1) % 3 != 0: # Move left
+            if f == 1 and (self.cy+1) < self.n: # Move left
                 self.move_left()
                 times -= 1
-            if f == 2 and (self.x+3) <= 8: # Move up
+            if f == 2 and (self.cx+1) < self.n: # Move up
                 self.move_up()
                 times -= 1
-            if f == 3 and (self.x-3) >= 0: # Move down
+            if f == 3 and self.cx > 0: # Move down
                 self.move_down()
                 times -= 1
 
+    def f(self):
+        return self.g + self.h
 
-def dfs(puzzle, visited, path):
-    visited.add(puzzle.hash_code())
-    path.append(puzzle)
-    if puzzle.is_done():
-        return True
-    possibilities = puzzle.get_possibilities()
-    for poss in possibilities:
-        if not poss.hash_code() in visited:
-            d = dfs(poss, visited, path)
-            if d: return True
-    path.pop()
-    return False
+    def path_to(self, goal):
 
-def solve(puzzle):
-    path = []
-    visited = set()
-    dfs(puzzle, visited, path)
-    return path
+        positions = goal.positions_map()
+        self.h = self.distance_to(positions)
+        open_list = [self]
+        closed_set = set()
+        found = False
+        last = None
 
-puzzle = Puzzle()
-puzzle.mix(times=500)
-print puzzle
+        while not found and len(open_list) > 0:
 
-path = solve(puzzle)
+            curr = open_list.pop(len(open_list) - 1)
+            closed_set.add(curr.hash_code())
+
+            if curr.is_equal(goal):
+                found = True
+                last = curr
+
+            else:
+
+                children = curr.get_children()
+
+                # Update g and h value for the children
+                for child in children:
+                    child.g = curr.g + 1
+                    child.h = child.distance_to(positions)
+                    for opened in open_list: # Check on open list
+                        if child.is_equal(opened) and opened.g > child.g: # If on the open list
+                            opened.g = child.g
+                            opened.parent = curr
+                    open_list.append(child)
+
+                # Sort the open list
+                open_list.sort(reverse=True)
+
+        # Building the path
+        if last is None:
+            return []
+
+        s = last.g
+        path = [1] * (s+1)
+        for i in range(s, -1, -1):
+            path[i] = last
+            last = last.parent
+
+        return path
+
+goal = Puzzle(str='12345678 ', blank=' ')
+initial = Puzzle(str='12345678 ', blank=' ')
+initial.mix(times=500)
+
+print 'Input:'
+print initial
+
+print '\n\nSolving...'
+path = initial.path_to(goal)
+
 if len(path) == 0:
     print 'Impossible to solve!'
 else:
-    print 'Solution:'
+    print '\n\nSolution:'
+    ls = []
     for p in path:
-        print "%s\n" % p
+        ls.append(p.__str__())
+    print '\n-----\n'.join(ls)
