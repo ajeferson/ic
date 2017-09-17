@@ -1,7 +1,7 @@
 import random
 import math
 
-class Puzzle:
+class NPuzzle:
 
     def __init__(self, **kwargs):
         if 'board' in kwargs:
@@ -30,7 +30,7 @@ class Puzzle:
 
     def clone(self):
         board = [[c for c in row] for row in self.board]
-        return Puzzle(board=board, n=self.n, cx=self.cx, cy=self.cy)
+        return NPuzzle(board=board, n=self.n, cx=self.cx, cy=self.cy)
 
     def move_up(self):
         self.blank_swap(self.cx + 1, self.cy)
@@ -49,24 +49,20 @@ class Puzzle:
         return self
 
     def get_children(self):
-        possibilities = []
+        children = []
         if self.cy > 0: # Move right
             child = self.clone().move_right()
-            child.parent = self
-            possibilities.append(child)
+            children.append(child)
         if (self.cy+1) < self.n: # Move left
             child = self.clone().move_left()
-            child.parent = self
-            possibilities.append(child)
+            children.append(child)
         if (self.cx+1) < self.n: # Move up
             child = self.clone().move_up()
-            child.parent = self
-            possibilities.append(child)
+            children.append(child)
         if self.cx > 0: # Move down
             child = self.clone().move_down()
-            child.parent = self
-            possibilities.append(child)
-        return possibilities
+            children.append(child)
+        return children
 
     def hash_code(self):
         str = ""
@@ -78,11 +74,16 @@ class Puzzle:
     def __str__(self):
         str = ''
         for i in range(self.n):
-            str += ("%s %s %s\n" % (self.board[i][0], self.board[i][1], self.board[i][2]))
+            str += ' '.join(self.board[i])
+            str += '\n'
         return str[0:-1]
 
-    def __gt__(self, other):
-        return self.f() > other.f()
+    def __eq__(self, other):
+        for i in range(self.n):
+            for j in range(self.n):
+                if self.board[i][j] != other.board[i][j]:
+                    return False
+        return True
 
     def positions_map(self):
         positions = {}
@@ -102,13 +103,6 @@ class Puzzle:
                     x, y = positions[self.board[i][j]]
                     dist += abs(i - x) + abs(j - y)
         return dist
-
-    def is_equal(self, other):
-        for i in range(self.n):
-            for j in range(self.n):
-                if self.board[i][j] != other.board[i][j]:
-                    return False
-        return True
 
     def mix(self, times):
         while times > 0:
@@ -134,35 +128,78 @@ class Puzzle:
         positions = goal.positions_map()
         self.h = self.distance_to(positions)
         open_list = [self]
-        closed_set = set()
+        closed_list = []
         found = False
         last = None
 
         while not found and len(open_list) > 0:
 
-            curr = open_list.pop(len(open_list) - 1)
-            closed_set.add(curr.hash_code())
+            # Get the lowest from the open list
+            min_index = 0
+            for i in range(0, len(open_list)):
+                if open_list[i].f() < open_list[min_index].f():
+                    min_index = i
+            curr = open_list.pop(min_index)
 
-            if curr.is_equal(goal):
+            # Found the solution
+            if curr == goal:
                 found = True
                 last = curr
 
             else:
 
+                # Get sucessor nodes
                 children = curr.get_children()
 
-                # Update g and h value for the children
                 for child in children:
+
                     child.g = curr.g + 1
+
+                    # Check opened list
+                    open_index = -2
+                    for i in range(len(open_list)): # Check on open list
+                        opened = open_list[i]
+                        if child == opened: # If on the open list
+                            if opened.g <= child.g: # Worse
+                                open_index = -1
+                                break
+                            else: # Better path found
+                                open_index = i
+                                break
+                    if open_index == -1: # On open list and worse
+                        continue
+
+                    # Check closed list
+                    close_index = -2
+                    for i in range(len(closed_list)):
+                        closed = closed_list[i];
+                        if child == closed: # If on the closes list
+                            if closed.g <= child.g: # Worse
+                                close_index = -1
+                                break
+                            else:
+                                close_index = i
+                                break
+                    if close_index == -1: # On closed list and worse
+                        continue
+
+
+                    # Remove from open list
+                    if open_index >= 0:
+                        open_list.pop(open_index)
+
+                    # Remove from closed list
+                    if close_index >= 0:
+                        closed_list.pop(close_index)
+
+                    # Apply heuristic function
                     child.h = child.distance_to(positions)
-                    for opened in open_list: # Check on open list
-                        if child.is_equal(opened) and opened.g > child.g: # If on the open list
-                            opened.g = child.g
-                            opened.parent = curr
+                    child.parent = curr
+
+                    # Add to open list
                     open_list.append(child)
 
-                # Sort the open list
-                open_list.sort(reverse=True)
+            closed_list.append(curr)
 
         # Building the path
         if last is None:
@@ -176,20 +213,26 @@ class Puzzle:
 
         return path
 
-goal = Puzzle(str='12345678 ', blank=' ')
-initial = Puzzle(str='12345678 ', blank=' ')
-initial.mix(times=500)
 
-print 'Input:'
+
+
+initial = NPuzzle(str='ABCDEFGH ', blank=' ')
+goal = initial.clone()
+initial.mix(times=75)
+
+print 'Initial State:'
 print initial
 
-print '\n\nSolving...'
+print '\nGoal:'
+print goal
+
+print '\nSolving...'
 path = initial.path_to(goal)
 
 if len(path) == 0:
-    print 'Impossible to solve!'
+    print '\nImpossible to solve!'
 else:
-    print '\n\nSolution:'
+    print '\nSolution:'
     ls = []
     for p in path:
         ls.append(p.__str__())
