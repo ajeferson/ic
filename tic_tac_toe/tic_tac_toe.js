@@ -4,9 +4,9 @@ var tic_tac_toe = function() {
     var $turn;
     var turn = true; // true if users turn
     var board = []; // 1 - user; 0 - computer;
+    var game_over = false;
 
     function init() {
-        console.log('Started tic tac toe');
         board = new_board();
         cache_dom();
         bind_events();
@@ -71,7 +71,7 @@ var tic_tac_toe = function() {
     }
 
     function did_click_square() {
-        if(!turn) { return; }
+        if(game_over || !turn) { return; }
         var row = $(this).data('row');
         var column = $(this).data('column');
         var $square = $(this);
@@ -79,11 +79,13 @@ var tic_tac_toe = function() {
         user_check($square);
         switch_turn_span();
         switch_turn();
+        check_game_over();
         computer_turn();
     }
 
     // TODO Minimax
     function computer_turn() {
+        if(game_over || turn) { return; }
         var successors = get_successors(board);
         var new_state = successors[0];
         var new_board = new_state[0];
@@ -93,8 +95,8 @@ var tic_tac_toe = function() {
         var index = row*3 + column;
         computer_check($($squares[index]));
         switch_turn_span();
+        check_game_over();
         switch_turn();
-        print_board(board);
     }
 
     function user_check(elem) {
@@ -124,6 +126,59 @@ var tic_tac_toe = function() {
 
     function player() {
         return turn ? 1 : 0;
+    }
+
+    function is_game_over(board) {
+        for(var i = 0; i < 3; i++) {
+            // Horizontal
+            if(board[i][0] != null && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
+                return true;
+            }
+            // Vertical
+            if(board[0][i] != null && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
+                return true;
+            }
+        }
+        // Diagonal Top Left - Bottom Right
+        if(board[0][0] != null && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+            return true;
+        }
+        // Diagonal Top Right - Bottom Left
+        if(board[0][2] != null && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+            return true;
+        }
+        return false;
+    }
+
+    function has_room(board) {
+        for(var i = 0; i < 3; i++) {
+            for(var j = 0; j < 3; j++) {
+                if(board[i][j] == null) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function check_game_over() {
+        game_over = is_game_over(board);
+        if(game_over) {
+            set_game_over_span();
+        } else {
+            if(!has_room(board)) { //Tie
+                game_over = true;
+                set_tie_span();
+            }
+        }
+    }
+
+    function set_game_over_span() {
+        $turn.text('Game Over!');
+    }
+
+    function set_tie_span() {
+        $turn.text("It's a Tie!");
     }
 
     return {
