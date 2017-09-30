@@ -7,9 +7,16 @@ var tic_tac_toe = function() {
     var game_over = false;
 
     function init() {
-        board = new_board();
         cache_dom();
         bind_events();
+        board = new_board();
+        board[0][0] = 0;
+        board[0][1] = 0;
+        board[0][2] = 1;
+        board[1][1] = 1;
+        board[2][0] = 0;
+        board[2][1] = 1;
+        draw_board(board);
     }
 
     function cache_dom() {
@@ -31,6 +38,19 @@ var tic_tac_toe = function() {
             matrix.push(row);
         }
         return matrix;
+    }
+
+    // Draws only when the next move if from the user
+    function draw_board(board) {
+        for(var i = 0; i < 3; i++) {
+            for(var j = 0; j < 3; j++) {
+                if(board[i][j] == 1) {
+                    user_check($($squares[3*i + j]));
+                } else if(board[i][j] == 0) {
+                    computer_check($($squares[3*i + j]));
+                }
+            }
+        }
     }
 
     function clone_board(board) {
