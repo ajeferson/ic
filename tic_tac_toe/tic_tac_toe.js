@@ -33,6 +33,16 @@ var tic_tac_toe = function() {
         return matrix;
     }
 
+    function clone_board(board) {
+        var cl = new_board();
+        for(var i = 0; i < board.length; i++) {
+            for(var j = 0; j < board[0].length; j++) {
+                cl[i][j] = board[i][j];
+            }
+        }
+        return cl;
+    }
+
     function print_board(b) {
         var str = "";
         for(var i = 0; i < 3; i++) {
@@ -45,10 +55,19 @@ var tic_tac_toe = function() {
         return c == null ? '-' : c;
     }
 
-    /**
-     * Receives the current board and the next char to play
-     * */
-    function get_successors(board, char) {
+    function get_successors(board) {
+        var pl = player();
+        var successors = [];
+        for(var i = 0; i < board.length; i++) {
+            for(var j = 0; j < board[0].length; j++) {
+                if(board[i][j] == null) {
+                    var s = clone_board(board);
+                    s[i][j] = pl;
+                    successors.push([s, i, j]);
+                }
+            }
+        }
+        return successors;
     }
 
     function did_click_square() {
@@ -56,11 +75,26 @@ var tic_tac_toe = function() {
         var row = $(this).data('row');
         var column = $(this).data('column');
         var $square = $(this);
-        board[row][column] = 1;
-        print_board(board);
+        board[row][column] = player();
         user_check($square);
         switch_turn_span();
         switch_turn();
+        computer_turn();
+    }
+
+    // TODO Minimax
+    function computer_turn() {
+        var successors = get_successors(board);
+        var new_state = successors[0];
+        var new_board = new_state[0];
+        var row = new_state[1];
+        var column = new_state[2];
+        board[row][column] = player();
+        var index = row*3 + column;
+        computer_check($($squares[index]));
+        switch_turn_span();
+        switch_turn();
+        print_board(board);
     }
 
     function user_check(elem) {
@@ -86,6 +120,10 @@ var tic_tac_toe = function() {
 
     function switch_turn() {
         turn = !turn;
+    }
+
+    function player() {
+        return turn ? 1 : 0;
     }
 
     return {
