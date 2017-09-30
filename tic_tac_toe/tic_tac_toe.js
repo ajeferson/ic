@@ -75,8 +75,8 @@ var tic_tac_toe = function() {
         return c == null ? '-' : c;
     }
 
-    function get_successors(board) {
-        var pl = player();
+    function get_successors(board, t) {
+        var pl = player(t);
         var successors = [];
         for(var i = 0; i < board.length; i++) {
             for(var j = 0; j < board[0].length; j++) {
@@ -95,7 +95,7 @@ var tic_tac_toe = function() {
         var row = $(this).data('row');
         var column = $(this).data('column');
         var $square = $(this);
-        board[row][column] = player();
+        board[row][column] = player(turn);
         user_check($square);
         switch_turn_span();
         switch_turn();
@@ -106,17 +106,70 @@ var tic_tac_toe = function() {
     // TODO Minimax
     function computer_turn() {
         if(game_over || turn) { return; }
-        var successors = get_successors(board);
-        var new_state = successors[0];
-        var new_board = new_state[0];
-        var row = new_state[1];
-        var column = new_state[2];
-        board[row][column] = player();
-        var index = row*3 + column;
-        computer_check($($squares[index]));
-        switch_turn_span();
-        check_game_over();
-        switch_turn();
+        minimax(board);
+        // var new_state = successors[0];
+        // var new_board = new_state[0];
+        // var row = new_state[1];
+        // var column = new_state[2];
+        // board[row][column] = player(turn);
+        // var index = row*3 + column;
+        // computer_check($($squares[index]));
+        // switch_turn_span();
+        // check_game_over();
+        // switch_turn();
+    }
+
+    function score_state(state) {
+        for(var i = 0; i < 3; i++) {
+            // Horizontal
+            if(board[i][0] != null && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
+                return board[i][0] == 1 ? 1 : -1;
+            }
+            // Vertical
+            if(board[0][i] != null && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
+                return board[0][i] == 1 ? 1 : -1;
+            }
+        }
+        // Diagonal Top Left - Bottom Right
+        if(board[0][0] != null && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+            return board[0][0] == 1 ? 1 : -1;
+        }
+        // Diagonal Top Right - Bottom Left
+        if(board[0][2] != null && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+            return board[0][2] == 1 ? 1 : -1;
+        }
+        return 0;
+    }
+
+    function minimax(state, t) {
+        var depth = 2;
+        return min_value(state, t, depth);
+    }
+
+    function min_value(state, t, depth) {
+        var v = 2;
+        return x_value(state, t, depth, v, Math.min, Math.max);
+    }
+
+    function max_value(state, t, depth) {
+        var v = -2;
+        return x_value(state, t, depth, v, Math.max, Math.min);
+    }
+
+    function x_value(state, t, depth, v, f, o) {
+        var score = score_state(state);
+        if(depth == 0 || score != 0) {
+            return score;
+        }
+        var successors = get_successors(state, t);
+        var min = v;
+        for(var i = 0; i < successors.length; i++) {
+            var curr = successors[i][0];
+            console.log(v);
+            print_board(curr);
+            min = f(min, x_value(curr, !t, depth-1, -v, o, f));
+        }
+        return min;
     }
 
     function user_check(elem) {
@@ -144,30 +197,12 @@ var tic_tac_toe = function() {
         turn = !turn;
     }
 
-    function player() {
-        return turn ? 1 : 0;
+    function player(t) {
+        return t ? 1 : 0;
     }
 
     function is_game_over(board) {
-        for(var i = 0; i < 3; i++) {
-            // Horizontal
-            if(board[i][0] != null && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
-                return true;
-            }
-            // Vertical
-            if(board[0][i] != null && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
-                return true;
-            }
-        }
-        // Diagonal Top Left - Bottom Right
-        if(board[0][0] != null && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
-            return true;
-        }
-        // Diagonal Top Right - Bottom Left
-        if(board[0][2] != null && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
-            return true;
-        }
-        return false;
+        return score_state(board) != 0;
     }
 
     function has_room(board) {
