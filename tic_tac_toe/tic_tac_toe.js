@@ -1,3 +1,11 @@
+function TreeNode(state) {
+    this.state = state;
+    this.score = null;
+    this.children = [];
+    this.i = -1;
+    this.j = -1;
+}
+
 var tic_tac_toe = function() {
 
     var $squares;
@@ -106,70 +114,80 @@ var tic_tac_toe = function() {
     // TODO Minimax
     function computer_turn() {
         if(game_over || turn) { return; }
-        minimax(board);
-        // var new_state = successors[0];
-        // var new_board = new_state[0];
-        // var row = new_state[1];
-        // var column = new_state[2];
-        // board[row][column] = player(turn);
-        // var index = row*3 + column;
-        // computer_check($($squares[index]));
-        // switch_turn_span();
-        // check_game_over();
-        // switch_turn();
+        var node = minimax(board);
+        board[node.i][node.j] = player(turn);
+        var index = node.i*3 + node.j;
+        computer_check($($squares[index]));
+        switch_turn_span();
+        check_game_over();
+        switch_turn();
     }
 
     function score_state(state) {
         for(var i = 0; i < 3; i++) {
             // Horizontal
-            if(board[i][0] != null && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
-                return board[i][0] == 1 ? 1 : -1;
+            if(state[i][0] != null && state[i][0] == state[i][1] && state[i][1] == state[i][2]) {
+                return state[i][0] == 1 ? 1 : -1;
             }
             // Vertical
-            if(board[0][i] != null && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
-                return board[0][i] == 1 ? 1 : -1;
+            if(state[0][i] != null && state[0][i] == state[1][i] && state[1][i] == state[2][i]) {
+                return state[0][i] == 1 ? 1 : -1;
             }
         }
         // Diagonal Top Left - Bottom Right
-        if(board[0][0] != null && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
-            return board[0][0] == 1 ? 1 : -1;
+        if(state[0][0] != null && state[0][0] == state[1][1] && state[1][1] == state[2][2]) {
+            return state[0][0] == 1 ? 1 : -1;
         }
         // Diagonal Top Right - Bottom Left
-        if(board[0][2] != null && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
-            return board[0][2] == 1 ? 1 : -1;
+        if(state[0][2] != null && state[0][2] == state[1][1] && state[1][1] == state[2][0]) {
+            return state[0][2] == 1 ? 1 : -1;
         }
         return 0;
     }
 
     function minimax(state, t) {
+
         var depth = 2;
-        return min_value(state, t, depth);
+        var root = new TreeNode(clone_board(state));
+
+        var v = 2; // Min
+        x_value(root, t, depth, v, Math.min, Math.max);
+
+        for(var i = 0; i < root.children.length; i++) {
+            if(root.children[i].score == root.score) {
+                return root.children[i];
+            }
+        }
+
+        // TODO Find random
+        return null;
     }
 
-    function min_value(state, t, depth) {
-        var v = 2;
-        return x_value(state, t, depth, v, Math.min, Math.max);
-    }
+    function x_value(node, t, depth, v, f, o) {
 
-    function max_value(state, t, depth) {
-        var v = -2;
-        return x_value(state, t, depth, v, Math.max, Math.min);
-    }
-
-    function x_value(state, t, depth, v, f, o) {
-        var score = score_state(state);
+        var score = score_state(node.state);
         if(depth == 0 || score != 0) {
+            node.score = score;
             return score;
         }
-        var successors = get_successors(state, t);
-        var min = v;
+
+        // TODO Needs improvement
+        var successors = get_successors(node.state, t);
         for(var i = 0; i < successors.length; i++) {
-            var curr = successors[i][0];
-            console.log(v);
-            print_board(curr);
-            min = f(min, x_value(curr, !t, depth-1, -v, o, f));
+            var tn = new TreeNode(successors[i][0]);
+            tn.i = successors[i][1];
+            tn.j = successors[i][2];
+            node.children.push(tn);
         }
-        return min;
+
+        node.score = v;
+        for(var i = 0; i < successors.length; i++) {
+            var curr = node.children[i];
+            node.score = f(node.score, x_value(curr, !t, depth-1, -v, o, f));
+        }
+
+        return node.score
+
     }
 
     function user_check(elem) {
