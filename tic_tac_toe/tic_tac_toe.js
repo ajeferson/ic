@@ -6,37 +6,38 @@ function TreeNode(state) {
     this.j = -1;
 }
 
-var tic_tac_toe = function() {
+function TicTacToe() {
 
-    var $squares;
-    var $turn;
-    var turn = true; // true if users turn
-    var board = []; // 1 - user; 0 - computer;
-    var game_over = false;
+    this.$squares = null;
+    this.$turn = null;
+    this.turn = true; // true if users turn
+    this.board = []; // 1 - user; 0 - computer;
+    this.game_over = false;
 
-    function init() {
-        cache_dom();
-        bind_events();
-        board = new_board();
-        board[0][0] = 0;
-        board[0][1] = 0;
-        board[0][2] = 1;
-        board[1][1] = 1;
-        board[2][0] = 0;
-        board[2][1] = 1;
-        draw_board(board);
-    }
+    this.init = function() {
+        this.cache_dom();
+        this.bind_events();
+        this.board = this.new_board();
+        // this.board[0][0] = 0;
+        // this.board[0][1] = 0;
+        // this.board[0][2] = 1;
+        // this.board[1][1] = 1;
+        // this.board[2][0] = 0;
+        // this.board[2][1] = 1;
+        this.draw_board(this.board);
+    };
 
-    function cache_dom() {
-        $squares = $('.square');
-        $turn = $('.turn');
-    }
+    this.cache_dom = function() {
+        this.$squares = $('.square');
+        this.$turn = $('.turn');
+    };
 
-    function bind_events() {
-        $squares.on('click', did_click_square);
-    }
+    this.bind_events = function() {
+        // this.did_click_square.bind(this);
+        this.$squares.on('click', this.did_click_square);
+    };
 
-    function new_board() {
+    this.new_board = function() {
         var matrix = [];
         for(var i = 0; i < 3; i++) {
             var row = [];
@@ -46,84 +47,84 @@ var tic_tac_toe = function() {
             matrix.push(row);
         }
         return matrix;
-    }
+    };
 
     // Draws only when the next move if from the user
-    function draw_board(board) {
+    this.draw_board = function(board) {
         for(var i = 0; i < 3; i++) {
             for(var j = 0; j < 3; j++) {
                 if(board[i][j] == 1) {
-                    user_check($($squares[3*i + j]));
+                    this.user_check($(this.$squares[3*i + j]));
                 } else if(board[i][j] == 0) {
-                    computer_check($($squares[3*i + j]));
+                    this.computer_check($(this.$squares[3*i + j]));
                 }
             }
         }
-    }
+    };
 
-    function clone_board(board) {
-        var cl = new_board();
+    this.clone_board = function(board) {
+        var cl = this.new_board();
         for(var i = 0; i < board.length; i++) {
             for(var j = 0; j < board[0].length; j++) {
                 cl[i][j] = board[i][j];
             }
         }
         return cl;
-    }
+    };
 
-    function print_board(b) {
+    this.print_board = function(b) {
         var str = "";
         for(var i = 0; i < 3; i++) {
-            str += printable_char(b[i][0]) + " " + printable_char(b[i][1]) + " " + printable_char(b[i][2]) + "\n";
+            str += this.printable_char(b[i][0]) + " " + this.printable_char(b[i][1]) + " " + this.printable_char(b[i][2]) + "\n";
         }
         console.log(str);
-    }
+    };
 
-    function printable_char(c) {
+    this.printable_char = function(c) {
         return c == null ? '-' : c;
-    }
+    };
 
-    function get_successors(board, t) {
-        var pl = player(t);
+    this.get_successors = function(board, t) {
+        var pl = this.player(t);
         var successors = [];
         for(var i = 0; i < board.length; i++) {
             for(var j = 0; j < board[0].length; j++) {
                 if(board[i][j] == null) {
-                    var s = clone_board(board);
+                    var s = this.clone_board(board);
                     s[i][j] = pl;
                     successors.push([s, i, j]);
                 }
             }
         }
         return successors;
-    }
+    };
 
-    function did_click_square() {
-        if(game_over || !turn) { return; }
-        var row = $(this).data('row');
-        var column = $(this).data('column');
-        var $square = $(this);
-        board[row][column] = player(turn);
-        user_check($square);
-        switch_turn_span();
-        switch_turn();
-        check_game_over();
-        computer_turn();
-    }
+    this.did_click_square = function(e) {
+        if(this.game_over || !this.turn) { return; }
+        var $target = $(e.target);
+        var row = $target.data('row');
+        var column = $target.data('column');
+        var $square = $target;
+        this.board[row][column] = this.player(this.turn);
+        this.user_check($square);
+        this.switch_turn_span();
+        this.switch_turn();
+        this.check_game_over();
+        this.computer_turn();
+    }.bind(this);
 
-    // TODO Minimax
-    function computer_turn() {
-        if(game_over || turn) { return; }
-        var node = minimax(board);
-        board[node.i][node.j] = player(turn);
+    this.computer_turn = function() {
+        if(this.game_over || this.turn) { return; }
+        var node = this.minimax(this.board);
+        this.board[node.i][node.j] = this.player(this.turn);
         var index = node.i*3 + node.j;
-        computer_check($($squares[index]));
-        switch_turn_span();
-        check_game_over();
-        switch_turn();
-    }
+        this.computer_check($(this.$squares[index]));
+        this.switch_turn_span();
+        this.check_game_over();
+        this.switch_turn();
+    };
 
-    function score_state(state) {
+    this.score_state = function(state) {
         for(var i = 0; i < 3; i++) {
             // Horizontal
             if(state[i][0] != null && state[i][0] == state[i][1] && state[i][1] == state[i][2]) {
@@ -143,15 +144,15 @@ var tic_tac_toe = function() {
             return state[0][2] == 1 ? 1 : -1;
         }
         return 0;
-    }
+    };
 
-    function minimax(state, t) {
+    this.minimax = function(state, t) {
 
         var depth = 2;
-        var root = new TreeNode(clone_board(state));
+        var root = new TreeNode(this.clone_board(state));
 
         var v = 2; // Min
-        x_value(root, t, depth, v, Math.min, Math.max);
+        this.x_value(root, t, depth, v, Math.min, Math.max);
 
         for(var i = 0; i < root.children.length; i++) {
             if(root.children[i].score == root.score) {
@@ -161,18 +162,19 @@ var tic_tac_toe = function() {
 
         // TODO Find random
         return null;
-    }
 
-    function x_value(node, t, depth, v, f, o) {
+    };
 
-        var score = score_state(node.state);
+    this.x_value = function(node, t, depth, v, f, o) {
+
+        var score = this.score_state(node.state);
         if(depth == 0 || score != 0) {
             node.score = score;
             return score;
         }
 
         // TODO Needs improvement
-        var successors = get_successors(node.state, t);
+        var successors = this.get_successors(node.state, t);
         for(var i = 0; i < successors.length; i++) {
             var tn = new TreeNode(successors[i][0]);
             tn.i = successors[i][1];
@@ -183,47 +185,47 @@ var tic_tac_toe = function() {
         node.score = v;
         for(var i = 0; i < successors.length; i++) {
             var curr = node.children[i];
-            node.score = f(node.score, x_value(curr, !t, depth-1, -v, o, f));
+            node.score = f(node.score, this.x_value(curr, !t, depth-1, -v, o, f));
         }
 
         return node.score
 
-    }
+    };
 
-    function user_check(elem) {
-        mark_with(elem, 'x');
-    }
+    this.user_check = function(elem) {
+        this.mark_with(elem, 'x');
+    };
 
-    function computer_check(elem) {
-        mark_with(elem, 'o');
-    }
+    this.computer_check = function(elem) {
+        this.mark_with(elem, 'o');
+    };
 
-    function mark_with(elem, symbol) {
+    this.mark_with = function(elem, symbol) {
         $(elem).css('background-image', "url('" + symbol + ".png')");
-    }
+    };
 
     // true if users
-    function switch_turn_span() {
-        if(turn) {
-            $turn.text("Computer's turn");
+    this.switch_turn_span = function() {
+        if(this.turn) {
+            this.$turn.text("Computer's turn");
         } else {
-            $turn.text("Your turn");
+            this.$turn.text("Your turn");
         }
-    }
+    };
 
-    function switch_turn() {
-        turn = !turn;
-    }
+    this.switch_turn = function() {
+        this.turn = !this.turn;
+    };
 
-    function player(t) {
+    this.player = function(t) {
         return t ? 1 : 0;
-    }
+    };
 
-    function is_game_over(board) {
-        return score_state(board) != 0;
-    }
+    this.is_game_over = function(board) {
+        return this.score_state(board) != 0;
+    };
 
-    function has_room(board) {
+    this.has_room = function(board) {
         for(var i = 0; i < 3; i++) {
             for(var j = 0; j < 3; j++) {
                 if(board[i][j] == null) {
@@ -232,34 +234,31 @@ var tic_tac_toe = function() {
             }
         }
         return false;
-    }
+    };
 
-    function check_game_over() {
-        game_over = is_game_over(board);
-        if(game_over) {
-            set_game_over_span();
+    this.check_game_over = function() {
+        this.game_over = this.is_game_over(this.board);
+        if(this.game_over) {
+            this.set_game_over_span();
         } else {
-            if(!has_room(board)) { //Tie
-                game_over = true;
-                set_tie_span();
+            if(!this.has_room(this.board)) { //Tie
+                this.game_over = true;
+                this.set_tie_span();
             }
         }
-    }
+    };
 
-    function set_game_over_span() {
-        $turn.text('Game Over!');
-    }
+    this.set_game_over_span = function() {
+        this.$turn.text('Game Over!');
+    };
 
-    function set_tie_span() {
-        $turn.text("It's a Tie!");
-    }
+    this.set_tie_span = function() {
+        this.$turn.text("It's a Tie!");
+    };
 
-    return {
-        init: init
-    }
-
-}();
+}
 
 $(function() {
-    tic_tac_toe.init();
+    var ticTac = new TicTacToe();
+    ticTac.init();
 });
