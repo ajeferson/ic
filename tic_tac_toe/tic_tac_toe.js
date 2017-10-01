@@ -159,8 +159,8 @@ function TicTacToe() {
             }
         }
 
-        // TODO Find random
-        return null;
+        // Just to prevent null pointer
+        return root.children[0];
 
     };
 
